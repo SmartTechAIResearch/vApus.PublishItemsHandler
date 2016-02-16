@@ -6,6 +6,7 @@
  *    Dieter Vandroemme
  */
 using MySql.Data.MySqlClient;
+using RandomUtils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -14,9 +15,7 @@ using System.Globalization;
 using System.Text;
 using System.Threading;
 using vApus.Publish;
-using vApus.PublishItemsHandler;
 using vApus.Util;
-using RandomUtils;
 
 namespace vApus.PublishItemsHandler {
     internal static class PublishItemHandler {

@@ -8,9 +8,12 @@
 using System;
 using System.Reflection;
 using System.Threading;
+using vApus.Util;
 
 namespace vApus.PublishItemsHandler {
     class Program {
+        private static Properties.Settings _settings = Properties.Settings.Default;
+
         private static readonly Mutex _namedMutex = new Mutex(true, Assembly.GetExecutingAssembly().FullName);
         static void Main(string[] args) {
             if (_namedMutex.WaitOne(0)) {
@@ -18,8 +21,37 @@ namespace vApus.PublishItemsHandler {
 
                 Console.WriteLine("vApus publish items handler");
                 Console.WriteLine("-----");
-                Console.WriteLine("This handler listens for messages on TCP port " + port + " over IPv4 published by vApus and puts them in a standardized vApus MySQL results db.");
+                Console.WriteLine("This handler listens for messages on TCP port " + port +
+                    " over IPv4 published by vApus and puts them in a standardized vApus MySQL results database.");
 
+                try {
+                    Console.WriteLine();
+
+                    object[] credentials = ReadCredentials();
+                    PublishItemHandler.Init(credentials[0] as string, (int)credentials[1], credentials[2] as string, credentials[3] as string);
+                    Console.WriteLine("Connected to MySQL " + credentials[2] + "@" + credentials[0] + ":" + credentials[1]);
+                    QueuedListener.Start(port);
+                    Console.WriteLine("Listening for incomming messages...");
+
+                    Console.WriteLine();
+                }
+                catch (Exception ex) {
+                    Console.WriteLine("Failed connecting to MySQL\n" + ex.Message);
+                    RemoveCredentials();
+                }
+                Console.WriteLine("Press <any key> to quit");
+                Console.ReadKey();
+
+                if (_settings.MySQLHost.Length != 0 && _settings.MySQLUser.Length != 0) {
+                    Console.WriteLine("Do you want to remove your stored credentials? (y or n)");
+                    if (Console.ReadLine().Trim().ToLowerInvariant() == "y")
+                        RemoveCredentials();
+                }
+            }
+        }
+
+        private static object[] ReadCredentials() {
+            if (_settings.MySQLHost.Length == 0 || _settings.MySQLUser.Length == 0) {
                 Console.WriteLine("Type MySQL <host>,<port>,<user> and press enter");
 
                 string[] arr = Console.ReadLine().Split(',');
@@ -27,20 +59,46 @@ namespace vApus.PublishItemsHandler {
                 Console.WriteLine("Type <password> and press enter");
 
                 string password = ReadPassword();
-                try {
-                    PublishItemHandler.Init(arr[0], int.Parse(arr[1]), arr[2], password);
-                    QueuedListener.Start(port);
-                    Console.WriteLine("Listening on TCP port " + port + " over IPv4.");
+
+                var credentials = new object[4];
+                credentials[0] = arr[0];
+                credentials[1] = int.Parse(arr[1]);
+                credentials[2] = arr[2];
+                credentials[3] = password;
+
+                Console.WriteLine("Do you want to store these credentials for next time? (y or n)");
+
+                if (Console.ReadLine().Trim().ToLowerInvariant() == "y") {
+                    _settings.MySQLHost = arr[0];
+                    _settings.MySQLPort = (int)credentials[1];
+                    _settings.MySQLUser = arr[2];
+                    _settings.MySQLPassword = password.Encrypt("{B4AB09F7-407F-473E-A038-C49F21B193E8}", new byte[] { 0x95, 0x16, 0x39, 0x3f, 0xa1, 0x4c, 0xc5, 0x54, 0x76, 0x45, 0x10, 0x11, 0x22 });
+
+                    _settings.Save();
                 }
-                catch (Exception ex) {
-                    Console.WriteLine("Failed connecting to MySQL\n" + ex.Message);
-                }
-                Console.WriteLine("Press <any key> to quit");
-                Console.ReadLine();
+
+                return credentials;
+            }
+            else {
+                return new object[] {
+                _settings.MySQLHost,
+                _settings.MySQLPort,
+                _settings.MySQLUser,
+                _settings.MySQLPassword.Decrypt("{B4AB09F7-407F-473E-A038-C49F21B193E8}", new byte[] { 0x95, 0x16, 0x39, 0x3f, 0xa1, 0x4c, 0xc5, 0x54, 0x76, 0x45, 0x10, 0x11, 0x22 })
+                };
             }
         }
 
-        public static string ReadPassword() {
+        private static void RemoveCredentials() {
+            _settings.MySQLHost = string.Empty;
+            _settings.MySQLPort = 3306;
+            _settings.MySQLUser = string.Empty;
+            _settings.MySQLPassword = string.Empty;
+
+            _settings.Save();
+        }
+
+        private static string ReadPassword() {
             string password = string.Empty;
             ConsoleKeyInfo info = Console.ReadKey(true);
             while (info.Key != ConsoleKey.Enter) {
