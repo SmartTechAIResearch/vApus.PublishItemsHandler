@@ -7,6 +7,7 @@
  */
 using System;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using vApus.Util;
 
@@ -15,9 +16,27 @@ namespace vApus.PublishItemsHandler {
         private static Properties.Settings _settings = Properties.Settings.Default;
 
         private static readonly Mutex _namedMutex = new Mutex(true, Assembly.GetExecutingAssembly().FullName);
+
+        [DllImport("user32.dll")]
+        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [DllImport("user32.dll", EntryPoint = "FindWindow", SetLastError = true)]
+        static extern IntPtr FindWindowByCaption(IntPtr zeroOnly, string lpWindowName);
+
+        [DllImport("USER32.DLL")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
+        const UInt32 SWP_NOSIZE = 0x0001;
+        const UInt32 SWP_NOMOVE = 0x0002;
+        const UInt32 SWP_NOACTIVATE = 0x0010;
+
         static void Main(string[] args) {
+            string title = "vApus publish items handler";
             if (_namedMutex.WaitOne(0)) {
                 int port = 4337;
+
+                Console.Title = title;
 
                 Console.WriteLine("vApus publish items handler");
                 Console.WriteLine("-----");
@@ -39,6 +58,10 @@ namespace vApus.PublishItemsHandler {
                     Console.WriteLine("Failed connecting to MySQL\n" + ex.Message);
                     RemoveCredentials();
                 }
+
+                if (args.Length != 0 && args[0] == "autohide")
+                    SetWindowPos(FindWindowByCaption(IntPtr.Zero, title), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
                 Console.WriteLine("Press <any key> to quit");
                 Console.ReadKey();
 
@@ -46,6 +69,14 @@ namespace vApus.PublishItemsHandler {
                     Console.WriteLine("Do you want to remove your stored credentials? (y or n)");
                     if (Console.ReadLine().Trim().ToLowerInvariant() == "y")
                         RemoveCredentials();
+                }
+            }
+            else {
+                try {
+                    SetForegroundWindow(FindWindowByCaption(IntPtr.Zero, title));
+                }
+                catch {
+                    //Don't care.
                 }
             }
         }
