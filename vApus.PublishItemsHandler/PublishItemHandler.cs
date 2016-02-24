@@ -63,7 +63,7 @@ namespace vApus.PublishItemsHandler {
 
         private class HandleObject {
             private DatabaseActions _databaseActions;
-            private int _vApusInstanceId = -1, _testId = -1, _stressTestResultId = -1, _concurrencyId = -1, _concurrencyResultId = -1, _runResultId = -1, _run = -1;
+            private int _vApusInstanceId = -1, _testId = -1, _stressTestResultId = -1, _concurrencyResultId = -1, _runResultId = -1, _run = -1;
             private ulong _totalRequestCount = 0;
 
             private HashSet<string> _monitorsMissingHeaders = new HashSet<string>();
@@ -85,10 +85,8 @@ namespace vApus.PublishItemsHandler {
                         HandleTileStressTestConfiguration(item);
                         break;
                     case "FastConcurrencyResults":
-                        HandleFastConcurrencyResults(item);
                         break;
                     case "FastRunResults":
-                        HandleFastRunResults(item);
                         break;
                     case "TestEvent":
                         HandleTestEvent(item);
@@ -97,10 +95,8 @@ namespace vApus.PublishItemsHandler {
                         HandleRequestResults(item);
                         break;
                     case "ClientMonitorMetrics":
-                        HandleClientMonitorMetrics(item);
                         break;
                     case "ApplicationLogEntry":
-                        HandleApplicationLogEntry(item);
                         break;
                     case "MonitorConfiguration":
                         HandleMonitorConfiguration(item);
@@ -136,8 +132,6 @@ namespace vApus.PublishItemsHandler {
                     pi.Concurrencies, pi.Runs, pi.InitialMinimumDelayInMilliseconds, pi.InitialMaximumDelayInMilliseconds, pi.MinimumDelayInMilliseconds, pi.MaximumDelayInMilliseconds, pi.Shuffle, pi.ActionDistribution, pi.MaximumNumberOfUserActions,
                     pi.MonitorBeforeInMinutes, pi.MonitorAfterInMinutes, pi.UseParallelExecutionOfRequests, pi.MaximumPersistentConnections, pi.PersistentConnectionsPerHostname);
             }
-            private void HandleFastConcurrencyResults(PublishItem item) { }
-            private void HandleFastRunResults(PublishItem item) { }
             private void HandleTestEvent(PublishItem item) {
                 var pi = item as TestEvent;
                 switch ((TestEventType)pi.TestEventType) {
@@ -149,7 +143,7 @@ namespace vApus.PublishItemsHandler {
                         SetStressTestStarted(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.ConcurrencyStarted:
-                        _concurrencyId = int.Parse(GetValues(pi.Parameters, "ConcurrencyId")[0]);
+                        //int concurrencyId = int.Parse(GetValues(pi.Parameters, "ConcurrencyId")[0]);
                         SetConcurrencyStarted(int.Parse(GetValues(pi.Parameters, "Concurrency")[0]), GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.RunInitializedFirstTime:
@@ -217,8 +211,6 @@ namespace vApus.PublishItemsHandler {
                 }
             }
 
-            private void HandleClientMonitorMetrics(PublishItem item) { }
-            private void HandleApplicationLogEntry(PublishItem item) { }
             private void HandleMonitorConfiguration(PublishItem item) {
                 if (_testId != -1) {
                     var pi = item as MonitorConfiguration;
