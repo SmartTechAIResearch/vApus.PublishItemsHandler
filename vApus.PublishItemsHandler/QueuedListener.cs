@@ -53,6 +53,11 @@ namespace vApus.PublishItemsHandler {
                     string msg;
                     while (_isListening) {
                         msg = sr.ReadLine();
+                        if (msg == null) {
+                            Debug.WriteLine("Broken pipe");
+                            break;
+                        }
+
                         try {
                             dynamic intermediate = JObject.Parse(msg);
                             //A validating step.
