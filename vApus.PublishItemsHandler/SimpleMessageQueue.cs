@@ -32,22 +32,18 @@ namespace vApus.PublishItemsHandler {
         }
 
         private void _tmr_Elapsed(object sender, ElapsedEventArgs e) {
-            if (OnDequeue != null) {
-                var messages = new object[_queue.LongCount()];
-                if (messages.LongLength != 0) {
-                    for (long l = 0L; l != messages.LongLength; l++) {
-                        object message;
-                        if (_queue.TryDequeue(out message)) messages[l] = message;
-                    }
-                    if (OnDequeue != null)
-                        OnDequeue.Invoke(null, new OnDequeueEventArgs(messages));
+            var messages = new object[_queue.LongCount()];
+            if (messages.LongLength != 0) {
+                for (long l = 0L; l != messages.LongLength; l++) {
+                    object message;
+                    if (_queue.TryDequeue(out message)) messages[l] = message;
                 }
+                if (OnDequeue != null)
+                    OnDequeue.Invoke(null, new OnDequeueEventArgs(messages));
             }
         }
 
-        public void Enqueue(PublishItem item) {
-            _queue.Enqueue(item);
-        }
+        public void Enqueue(PublishItem item) { _queue.Enqueue(item); }
 
         public class OnDequeueEventArgs : EventArgs {
             public object[] Messages { get; private set; }
