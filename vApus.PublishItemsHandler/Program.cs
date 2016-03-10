@@ -83,7 +83,7 @@ namespace vApus.PublishItemsHandler {
 
         private static object[] ReadCredentials() {
             if (_settings.MySQLHost.Length == 0 || _settings.MySQLUser.Length == 0) {
-                Console.WriteLine("Type MySQL <host>,<port>,<user> and press enter");
+                Console.WriteLine("Type <MySQL host>,<port>,<user> and press enter");
 
                 string[] arr = Console.ReadLine().Split(',');
 
