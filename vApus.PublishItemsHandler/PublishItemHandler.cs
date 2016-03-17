@@ -162,7 +162,7 @@ namespace vApus.PublishItemsHandler {
                         SetConcurrencyStopped(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.TestStopped:
-                        SetStressTestStopped(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime(),
+                        SetStressTestStopped(item.vApusIsMaster, GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime(),
                             GetValues(pi.Parameters, "Status")[0], GetValues(pi.Parameters, "StatusMessage")[0]);
                         break;
                     case TestEventType.MasterListeningError: break;
@@ -232,8 +232,14 @@ namespace vApus.PublishItemsHandler {
                     case MonitorEventType.MonitorBeforeTestDone:
                         break;
                     case MonitorEventType.MonitorAfterTestStarted:
+                        _databaseActions.ExecuteSQL("DELETE from resultsreadystate;");
+                        _databaseActions.ExecuteSQL("INSERT INTO resultsreadystate(State) VALUES('Not ready');");
+
                         break;
                     case MonitorEventType.MonitorAfterTestDone:
+                        _databaseActions.ExecuteSQL("DELETE from resultsreadystate;");
+                        _databaseActions.ExecuteSQL("INSERT INTO resultsreadystate(State) VALUES('Ready');");
+
                         break;
                     case MonitorEventType.MonitorStopped:
                         break;
@@ -376,13 +382,20 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
                     _databaseActions.ExecuteSQL(string.Format("UPDATE concurrencyresults SET StoppedAt='{1}' WHERE Id='{0}'", _concurrencyResultId, Parse(stoppedAt)));
             }
 
-            private void SetStressTestStopped(DateTime stoppedAt, string status = "OK", string statusMessage = "") {
-                if (_databaseActions != null && _stressTestResultId != -1) {
-                    _databaseActions.ExecuteSQL(
+            private void SetStressTestStopped(bool vApusIsMaster, DateTime stoppedAt, string status = "OK", string statusMessage = "") {
+                if (_databaseActions != null) {
+                    if (_stressTestResultId != -1) {
+                        _databaseActions.ExecuteSQL(
                         string.Format(
                             "UPDATE stresstestresults SET StoppedAt='{1}', Status='{2}', StatusMessage='{3}' WHERE Id='{0}'",
-                            _stressTestResultId, Parse(stoppedAt), status, statusMessage)
-                        );
+                             _stressTestResultId, Parse(stoppedAt), status, statusMessage)
+                         );
+                    }
+
+                    if (vApusIsMaster) {
+                        _databaseActions.ExecuteSQL("DELETE from resultsreadystate;");
+                        _databaseActions.ExecuteSQL("INSERT INTO resultsreadystate(State) VALUES('Ready');");
+                    }
                 }
             }
             private ulong SetMonitor(int stressTestId, string monitor, string monitorSource, string connectionString, string machineConfiguration) {

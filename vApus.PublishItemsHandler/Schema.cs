@@ -26,6 +26,8 @@ namespace vApus.PublishItemsHandler {
             ReleaseConnection(databaseActions);
 
             databaseActions = new DatabaseActions() { ConnectionString = connectionString };
+
+            CreateResultsReadyStateTable(databaseActions);
             CreateDescriptionTable(databaseActions);
             CreateTagsTable(databaseActions);
 
@@ -53,6 +55,11 @@ namespace vApus.PublishItemsHandler {
             string databaseName = "vapus" + DateTime.Now.ToString("yyyy_MM_dd_HH_mm_ss_fffffff");
             databaseActions.ExecuteSQL("Create Database " + databaseName);
             return databaseName;
+        }
+
+        private static void CreateResultsReadyStateTable(DatabaseActions databaseActions) {
+            databaseActions.ExecuteSQL("Create Table resultsreadystate(State varchar(255) NOT NULL UNIQUE) ROW_FORMAT=COMPRESSED");
+            databaseActions.ExecuteSQL("INSERT INTO resultsreadystate(State) VALUES('Not ready');");
         }
 
         private static void CreateDescriptionTable(DatabaseActions databaseActions) {
