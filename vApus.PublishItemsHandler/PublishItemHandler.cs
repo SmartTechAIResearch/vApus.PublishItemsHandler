@@ -138,6 +138,7 @@ namespace vApus.PublishItemsHandler {
                     case TestEventType.TestMessage:
                         AddMessage(item as TestEvent);
                         break;
+                    case TestEventType.TestValue: break;
                     case TestEventType.TestInitialized: break;
                     case TestEventType.TestStarted:
                         SetStressTestStarted(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
