@@ -258,7 +258,7 @@ namespace vApus.PublishItemsHandler {
                     CultureInfo prevCulture = Thread.CurrentThread.CurrentCulture;
                     Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("nl-BE");
                     var value = new List<string>();
-                    for (int i = 0; i < pi.Values.Length; i++) {
+                    for (int i = 1; i < pi.Values.Length; i++) {
                         object o = pi.Values[i];
                         value.Add((o is double) ? StringUtil.DoubleToLongString((double)o) : o.ToString());
                     }
@@ -266,7 +266,7 @@ namespace vApus.PublishItemsHandler {
                     var sb = new StringBuilder("('");
                     sb.Append(_monitorsWithIds[pi.Monitor]);
                     sb.Append("', '");
-                    sb.Append(Parse(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime()));
+                    sb.Append(Parse(GetUtcDateTime((long)pi.Values[0]).ToLocalTime()));
                     sb.Append("', '");
                     sb.Append(MySQLEscapeString(MySQLEscapeString(value.Combine("; "))));
                     sb.Append("')");
@@ -417,7 +417,7 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
                     _databaseActions.ExecuteSQL(
                         string.Format(
                             "UPDATE monitors SET ResultHeaders = ?ResultHeaders where Id = {0}", monitorId),
-                            CommandType.Text, new MySqlParameter("?ResultHeaders", resultHeaders.Combine("; ", string.Empty))
+                            CommandType.Text, new MySqlParameter("?ResultHeaders", resultHeaders.Combine("; ", string.Empty, "TimestampInMillisecondsSinceEpoch"))
                         );
                     return _databaseActions.GetLastInsertId();
                 }
