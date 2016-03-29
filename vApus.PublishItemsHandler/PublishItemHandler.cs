@@ -7,6 +7,7 @@
  */
 using MySql.Data.MySqlClient;
 using RandomUtils;
+using RandomUtils.Log;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -57,7 +58,12 @@ namespace vApus.PublishItemsHandler {
                     if (!_handleObjects.ContainsKey(id))
                         _handleObjects.TryAdd(id, new HandleObject(_databaseActions[item.ResultSetId]));
 
-                    _handleObjects[id].Handle(item);
+                    try {
+                        _handleObjects[id].Handle(item);
+                    }
+                    catch(Exception ex) {
+                        Loggers.Log(Level.Error, "Error handling item.", ex, new object[] {"id " + id, "item " + item });
+                    }
                 }
         }
 
@@ -162,8 +168,7 @@ namespace vApus.PublishItemsHandler {
                         SetConcurrencyStopped(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.TestStopped:
-                        SetStressTestStopped(item.vApusIsMaster, GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime(),
-                            GetValues(pi.Parameters, "Status")[0], GetValues(pi.Parameters, "StatusMessage")[0]);
+                            SetStressTestStopped(item.vApusIsMaster, GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime(), pi.Parameters);
                         break;
                     case TestEventType.MasterListeningError: break;
                 }
@@ -382,13 +387,13 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
                     _databaseActions.ExecuteSQL(string.Format("UPDATE concurrencyresults SET StoppedAt='{1}' WHERE Id='{0}'", _concurrencyResultId, Parse(stoppedAt)));
             }
 
-            private void SetStressTestStopped(bool vApusIsMaster, DateTime stoppedAt, string status = "OK", string statusMessage = "") {
+            private void SetStressTestStopped(bool vApusIsMaster, DateTime stoppedAt, KeyValuePair<string, string>[] parameters) {
                 if (_databaseActions != null) {
                     if (_stressTestResultId != -1) {
                         _databaseActions.ExecuteSQL(
                         string.Format(
                             "UPDATE stresstestresults SET StoppedAt='{1}', Status='{2}', StatusMessage='{3}' WHERE Id='{0}'",
-                             _stressTestResultId, Parse(stoppedAt), status, statusMessage)
+                             _stressTestResultId, Parse(stoppedAt), GetValues(parameters, "Status")[0], GetValues(parameters, "StatusMessage")[0])
                          );
                     }
 
