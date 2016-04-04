@@ -197,7 +197,7 @@ namespace vApus.PublishItemsHandler {
                         sb.Append("', '");
                         sb.Append(requestResults.InParallelWithPrevious ? 1 : 0);
                         sb.Append("', '");
-                        sb.Append(Parse(GetUtcDateTime(requestResults.SentAtInMicrosecondsSinceEpochUtc))); //No local time here!
+                        sb.Append(requestResults.SentAtInTicksSinceEpochUtc); //No local time here!
                         sb.Append("', '");
                         sb.Append(requestResults.TimeToLastByteInTicks);
                         sb.Append("', '");
@@ -211,7 +211,7 @@ namespace vApus.PublishItemsHandler {
                         sb.Append("')");
 
                         _databaseActions.ExecuteSQL(
-                            string.Format("INSERT INTO requestresults(RunResultId, VirtualUser, UserAction, RequestIndex, SameAsRequestIndex, Request, InParallelWithPrevious, SentAt, TimeToLastByteInTicks, Meta, DelayInMilliseconds, Error, Rerun) VALUES {0};",
+                            string.Format("INSERT INTO requestresults(RunResultId, VirtualUser, UserAction, RequestIndex, SameAsRequestIndex, Request, InParallelWithPrevious, SentAtInTicksSinceEpochUtc, TimeToLastByteInTicks, Meta, DelayInMilliseconds, Error, Rerun) VALUES {0};",
                             sb.ToString()));
                     }
                 }
