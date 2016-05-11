@@ -30,6 +30,8 @@ namespace vApus.PublishItemsHandler {
         private static string _host, _user, _password;
         private static int _port;
 
+        private static readonly object _lock = new object();
+
         /// <summary>
         /// This must be set correctly before anything else.
         /// </summary>
@@ -38,33 +40,47 @@ namespace vApus.PublishItemsHandler {
         /// <param name="user"></param>
         /// <param name="password"></param>
         public static void Init(string host, int port, string user, string password) {
-            var databaseActions = new DatabaseActions() { ConnectionString = string.Format("Server={0};Port={1};Uid={2};Pwd={3};table cache = true;", host, port, user, password) };
-            if (!databaseActions.CanConnect())
-                throw new Exception("The credentials are not correct.");
+            lock (_lock) {
+                var databaseActions = new DatabaseActions() { ConnectionString = string.Format("Server={0};Port={1};Uid={2};Pwd={3};table cache = true;", host, port, user, password) };
+                if (!databaseActions.CanConnect())
+                    throw new Exception("The credentials are not correct.");
 
-            _host = host;
-            _port = port;
-            _user = user;
-            _password = password;
+                _host = host;
+                _port = port;
+                _user = user;
+                _password = password;
+            }
         }
 
         public static void Handle(object[] items) {
-            foreach (PublishItem item in items)
-                if (!(item is Poll) && item.ResultSetId != null) {
-                    if (!_databaseActions.ContainsKey(item.ResultSetId))
-                        _databaseActions.TryAdd(item.ResultSetId, new DatabaseActions() { ConnectionString = Schema.Build(_host, _port, _user, _password) });
+            lock (_lock)
+                foreach (PublishItem item in items)
+                    if (!(item is Poll) && item.ResultSetId != null) {
+                        if (!_databaseActions.ContainsKey(item.ResultSetId))
+                            _databaseActions.TryAdd(item.ResultSetId, new DatabaseActions() { ConnectionString = Schema.Build(_host, _port, _user, _password) });
 
-                    string id = item.ResultSetId + item.vApusHost + item.vApusPort;
-                    if (!_handleObjects.ContainsKey(id))
-                        _handleObjects.TryAdd(id, new HandleObject(_databaseActions[item.ResultSetId]));
+                        string id = item.ResultSetId + item.vApusHost + item.vApusPort;
+                        if (!_handleObjects.ContainsKey(id))
+                            _handleObjects.TryAdd(id, new HandleObject(_databaseActions[item.ResultSetId]));
 
-                    try {
-                        _handleObjects[id].Handle(item);
+                        //Try 10 times.
+                        int i = 0,  tries = 10;
+                        while (true)
+                            try {
+                                ++i;
+                                _handleObjects[id].Handle(item);
+                                break;
+                            }
+                            catch (Exception ex) {
+                                if (i == tries) {
+                                    Loggers.Log(Level.Error, "Error handling item.", ex, new object[] { "id " + id, "item " + item });
+                                    break;
+                                }
+                                else {
+                                    Thread.Sleep(i * 100);
+                                }
+                            }
                     }
-                    catch(Exception ex) {
-                        Loggers.Log(Level.Error, "Error handling item.", ex, new object[] {"id " + id, "item " + item });
-                    }
-                }
         }
 
         private class HandleObject {
@@ -168,7 +184,7 @@ namespace vApus.PublishItemsHandler {
                         SetConcurrencyStopped(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.TestStopped:
-                            SetStressTestStopped(item.vApusIsMaster, GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime(), pi.Parameters);
+                        SetStressTestStopped(item.vApusIsMaster, GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime(), pi.Parameters);
                         break;
                     case TestEventType.MasterListeningError: break;
                 }
