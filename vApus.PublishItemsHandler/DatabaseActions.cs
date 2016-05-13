@@ -44,7 +44,7 @@ namespace vApus.Util {
         ///     The connection.
         /// </summary>
         private MySqlConnection _connection;
-        private int _commandTimeout = 3600; //Default 1 hour.
+        private int _commandTimeout = 36000; //Default 10 hours.
 
         #endregion
 
