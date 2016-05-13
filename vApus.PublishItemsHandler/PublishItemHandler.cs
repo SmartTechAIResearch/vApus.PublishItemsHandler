@@ -20,8 +20,10 @@ using vApus.Util;
 
 namespace vApus.PublishItemsHandler {
     internal static class PublishItemHandler {
+        private static readonly object _lock = new object();
+
+        private static ConcurrentDictionary<string, string> _connectionStrings = new ConcurrentDictionary<string, string>(); //result set ids, connection string;
         private static ConcurrentDictionary<string, HandleObject> _handleObjects = new ConcurrentDictionary<string, HandleObject>();
-        private static ConcurrentDictionary<string, DatabaseActions> _databaseActions = new ConcurrentDictionary<string, DatabaseActions>();
 
         private static string _passwordGUID = "{51E6A7AC-06C2-466F-B7E8-4B0A00F6A21F}";
 
@@ -30,7 +32,6 @@ namespace vApus.PublishItemsHandler {
         private static string _host, _user, _password;
         private static int _port;
 
-        private static readonly object _lock = new object();
 
         /// <summary>
         /// This must be set correctly before anything else.
@@ -40,50 +41,40 @@ namespace vApus.PublishItemsHandler {
         /// <param name="user"></param>
         /// <param name="password"></param>
         public static void Init(string host, int port, string user, string password) {
-            lock (_lock) {
-                var databaseActions = new DatabaseActions() { ConnectionString = string.Format("Server={0};Port={1};Uid={2};Pwd={3};table cache = true;", host, port, user, password) };
-                if (!databaseActions.CanConnect())
-                    throw new Exception("The credentials are not correct.");
+            var databaseActions = new DatabaseActions() { ConnectionString = string.Format("Server={0};Port={1};Uid={2};Pwd={3};table cache = true;", host, port, user, password) };
+            if (!databaseActions.CanConnect())
+                throw new Exception("The credentials are not correct.");
 
-                _host = host;
-                _port = port;
-                _user = user;
-                _password = password;
-            }
+            _host = host;
+            _port = port;
+            _user = user;
+            _password = password;
         }
 
         public static void Handle(object[] items) {
             lock (_lock)
                 foreach (PublishItem item in items)
                     if (!(item is Poll) && item.ResultSetId != null) {
-                        if (!_databaseActions.ContainsKey(item.ResultSetId))
-                            _databaseActions.TryAdd(item.ResultSetId, new DatabaseActions() { ConnectionString = Schema.Build(_host, _port, _user, _password) });
+                        if (!_connectionStrings.ContainsKey(item.ResultSetId))
+                            _connectionStrings.TryAdd(item.ResultSetId, Schema.Build(_host, _port, _user, _password));
 
                         string id = item.ResultSetId + item.vApusHost + item.vApusPort;
-                        if (!_handleObjects.ContainsKey(id))
-                            _handleObjects.TryAdd(id, new HandleObject(_databaseActions[item.ResultSetId]));
 
-                        //Try 10 times.
-                        int i = 0,  tries = 10;
-                        while (true)
-                            try {
-                                ++i;
-                                _handleObjects[id].Handle(item);
-                                break;
-                            }
-                            catch (Exception ex) {
-                                if (i == tries) {
-                                    Loggers.Log(Level.Error, "Error handling item.", ex, new object[] { "id " + id, "item " + item });
-                                    break;
-                                }
-                                else {
-                                    Thread.Sleep(i * 100);
-                                }
-                            }
+                        if (!_handleObjects.ContainsKey(id))
+                            _handleObjects.TryAdd(id, new HandleObject(id, _connectionStrings[item.ResultSetId]));
+
+
+                        _handleObjects[id].Handle(item);
                     }
         }
 
         private class HandleObject {
+            private delegate void HandleDel(PublishItem item);
+            private HandleDel _handleDel;
+
+            private BackgroundWorkQueue _workQueue = new BackgroundWorkQueue();
+
+            private string _id;
             private DatabaseActions _databaseActions;
             private int _vApusInstanceId = -1, _testId = -1, _stressTestResultId = -1, _concurrencyResultId = -1, _runResultId = -1, _run = -1;
             private ulong _totalRequestCount = 0;
@@ -91,45 +82,65 @@ namespace vApus.PublishItemsHandler {
             private HashSet<string> _monitorsMissingHeaders = new HashSet<string>();
             private ConcurrentDictionary<string, ulong> _monitorsWithIds = new ConcurrentDictionary<string, ulong>();
 
-            public HandleObject(DatabaseActions databaseActions) {
-                _databaseActions = databaseActions;
+            public HandleObject(string id, string connectionString) {
+                _id = id;
+                _databaseActions = new DatabaseActions() { ConnectionString = connectionString };
+                _handleDel = AsyncHandle;
             }
 
-            public void Handle(PublishItem item) {
-                switch (item.PublishItemType) {
-                    case "DistributedTestConfiguration":
-                        HandleDistributedTestConfiguration(item);
+            public void Handle(PublishItem item) { _workQueue.EnqueueWorkItem(_handleDel, item); }
+
+            private void AsyncHandle(PublishItem item) {
+                //Try 10 times.
+                int i = 0, tries = 10;
+                while (true)
+                    try {
+                        ++i;
+                        switch (item.PublishItemType) {
+                            case "DistributedTestConfiguration":
+                                HandleDistributedTestConfiguration(item);
+                                break;
+                            case "StressTestConfiguration":
+                                HandleStressTestConfiguration(item);
+                                break;
+                            case "TileStressTestConfiguration":
+                                HandleTileStressTestConfiguration(item);
+                                break;
+                            case "FastConcurrencyResults":
+                                break;
+                            case "FastRunResults":
+                                break;
+                            case "TestEvent":
+                                HandleTestEvent(item);
+                                break;
+                            case "RequestResults":
+                                HandleRequestResults(item);
+                                break;
+                            case "ClientMonitorMetrics":
+                                break;
+                            case "ApplicationLogEntry":
+                                break;
+                            case "MonitorConfiguration":
+                                HandleMonitorConfiguration(item);
+                                break;
+                            case "MonitorEvent":
+                                HandleMonitorEvent(item);
+                                break;
+                            case "MonitorMetrics":
+                                HandleMonitorMetrics(item);
+                                break;
+                        }
                         break;
-                    case "StressTestConfiguration":
-                        HandleStressTestConfiguration(item);
-                        break;
-                    case "TileStressTestConfiguration":
-                        HandleTileStressTestConfiguration(item);
-                        break;
-                    case "FastConcurrencyResults":
-                        break;
-                    case "FastRunResults":
-                        break;
-                    case "TestEvent":
-                        HandleTestEvent(item);
-                        break;
-                    case "RequestResults":
-                        HandleRequestResults(item);
-                        break;
-                    case "ClientMonitorMetrics":
-                        break;
-                    case "ApplicationLogEntry":
-                        break;
-                    case "MonitorConfiguration":
-                        HandleMonitorConfiguration(item);
-                        break;
-                    case "MonitorEvent":
-                        HandleMonitorEvent(item);
-                        break;
-                    case "MonitorMetrics":
-                        HandleMonitorMetrics(item);
-                        break;
-                }
+                    }
+                    catch (Exception ex) {
+                        if (i == tries) {
+                            Loggers.Log(Level.Error, "Error handling item.", ex, new object[] { "id " + _id, "item " + item });
+                            break;
+                        }
+                        else {
+                            Thread.Sleep(i * 10);
+                        }
+                    }
             }
 
             private void HandleDistributedTestConfiguration(PublishItem item) {
@@ -422,6 +433,16 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
             private ulong SetMonitor(int stressTestId, string monitor, string monitorSource, string connectionString, string machineConfiguration) {
                 if (_databaseActions != null) {
                     if (machineConfiguration == null) machineConfiguration = string.Empty;
+
+                    DataTable dt = null;
+                    do {
+                        dt = _databaseActions.GetDataTable("SHOW TABLES LIKE 'stresstests';");
+                        if (dt.Rows.Count != 0)
+                            dt = _databaseActions.GetDataTable("Select Id from stresstests where Id = " + stressTestId + ";");
+                        Thread.Sleep(100);
+
+                    } while (dt.Rows.Count == 0);
+
                     _databaseActions.ExecuteSQL(
                         string.Format(
                             "INSERT INTO monitors(StressTestId, Monitor, MonitorSource, ConnectionString, MachineConfiguration, ResultHeaders) VALUES('{0}', ?Monitor, ?MonitorSource, ?ConnectionString, ?MachineConfiguration, '')", stressTestId),
