@@ -174,28 +174,28 @@ namespace vApus.PublishItemsHandler {
                     case TestEventType.TestValue: break;
                     case TestEventType.TestInitialized: break;
                     case TestEventType.TestStarted:
-                        SetStressTestStarted(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
+                        SetStressTestStarted(GetUtcDateTime(pi.AtInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.ConcurrencyStarted:
                         //int concurrencyId = int.Parse(GetValues(pi.Parameters, "ConcurrencyId")[0]);
-                        SetConcurrencyStarted(int.Parse(GetValues(pi.Parameters, "Concurrency")[0]), GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
+                        SetConcurrencyStarted(int.Parse(GetValues(pi.Parameters, "Concurrency")[0]), GetUtcDateTime(pi.AtInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.RunInitializedFirstTime:
                         _run = int.Parse(GetValues(pi.Parameters, "Run")[0]);
                         break;
                     case TestEventType.RunStarted:
-                        SetRunStarted(_run, GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
+                        SetRunStarted(_run, GetUtcDateTime(pi.AtInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.RunDoneOnce: break;
                     case TestEventType.RerunDone: break;
                     case TestEventType.RunStopped:
-                        SetRunStopped(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
+                        SetRunStopped(GetUtcDateTime(pi.AtInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.ConcurrencyStopped:
-                        SetConcurrencyStopped(GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime());
+                        SetConcurrencyStopped(GetUtcDateTime(pi.AtInMillisecondsSinceEpochUtc).ToLocalTime());
                         break;
                     case TestEventType.TestStopped:
-                        SetStressTestStopped(item.vApusIsMaster, GetUtcDateTime(pi.PublishItemTimestampInMillisecondsSinceEpochUtc).ToLocalTime(), pi.Parameters);
+                        SetStressTestStopped(item.vApusIsMaster, GetUtcDateTime(pi.AtInMillisecondsSinceEpochUtc).ToLocalTime(), pi.Parameters);
                         break;
                     case TestEventType.MasterListeningError: break;
                 }
