@@ -161,7 +161,7 @@ namespace vApus.PublishItemsHandler {
             private void HandleTileStressTestConfiguration(PublishItem item) {
                 var pi = item as TileStressTestConfiguration;
                 SetvApusInstance(pi.vApusHost, pi.vApusHost, pi.vApusPort, pi.vApusVersion, pi.vApusChannel, pi.vApusIsMaster);
-                SetStressTest(pi.TileStressTest, "None", pi.Connection, pi.ConnectionProxy, "", pi.ScenariosAndWeights, pi.ScenarioRuleSet,
+                SetStressTest(pi.TileStressTest, pi.RunSynchronization, pi.Connection, pi.ConnectionProxy, "", pi.ScenariosAndWeights, pi.ScenarioRuleSet,
                     pi.Concurrencies, pi.Runs, pi.InitialMinimumDelayInMilliseconds, pi.InitialMaximumDelayInMilliseconds, pi.MinimumDelayInMilliseconds, pi.MaximumDelayInMilliseconds, pi.Shuffle, pi.ActionDistribution, pi.MaximumNumberOfUserActions,
                     pi.MonitorBeforeInMinutes, pi.MonitorAfterInMinutes, pi.UseParallelExecutionOfRequests, pi.MaximumPersistentConnections, pi.PersistentConnectionsPerHostname);
             }
