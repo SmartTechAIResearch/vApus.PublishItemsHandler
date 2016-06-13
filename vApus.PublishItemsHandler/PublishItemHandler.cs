@@ -52,7 +52,7 @@ namespace vApus.PublishItemsHandler {
         }
 
         public static void Handle(object[] items) {
-            lock (_lock)
+            lock (_lock) {
                 foreach (PublishItem item in items)
                     if (!(item is Poll) && item.ResultSetId != null) {
                         if (!_connectionStrings.ContainsKey(item.ResultSetId))
@@ -66,9 +66,29 @@ namespace vApus.PublishItemsHandler {
 
                         _handleObjects[id].Handle(item);
                     }
+
+                CleanupIdleHandleObjects();
+            }
         }
 
-        private class HandleObject {
+        /// <summary>
+        /// Handle objects that are idle for more than an hour will be disposed.
+        /// </summary>
+        private static void CleanupIdleHandleObjects() {
+            var now = DateTime.Now;
+            var newHandleObjects = new ConcurrentDictionary<string, HandleObject>();
+            foreach (string id in _handleObjects.Keys) {
+                var handleObject = _handleObjects[id];
+                if (now - handleObject.LastActivity > TimeSpan.FromHours(1))                     
+                    handleObject.Dispose(); //_connectionStrings will not be cleaned, because of other handle objects can depend on it.             
+                else 
+                    newHandleObjects.TryAdd(id, handleObject);                
+            }
+
+            _handleObjects = newHandleObjects;
+        }
+
+        private class HandleObject : IDisposable {
             private delegate void HandleDel(PublishItem item);
             private HandleDel _handleDel;
 
@@ -82,19 +102,26 @@ namespace vApus.PublishItemsHandler {
             private HashSet<string> _monitorsMissingHeaders = new HashSet<string>();
             private ConcurrentDictionary<string, ulong> _monitorsWithIds = new ConcurrentDictionary<string, ulong>();
 
+            public DateTime LastActivity { get; private set; }
+
             public HandleObject(string id, string connectionString) {
                 _id = id;
                 _databaseActions = new DatabaseActions() { ConnectionString = connectionString };
                 _handleDel = AsyncHandle;
             }
 
-            public void Handle(PublishItem item) { _workQueue.EnqueueWorkItem(_handleDel, item); }
+            public void Handle(PublishItem item) {
+                LastActivity = DateTime.Now;
+                _workQueue.EnqueueWorkItem(_handleDel, item);
+            }
 
             private void AsyncHandle(PublishItem item) {
                 //Try 10 times.
                 int i = 0, tries = 10;
                 while (true)
                     try {
+                        LastActivity = DateTime.Now;
+
                         ++i;
                         switch (item.PublishItemType) {
                             case "DistributedTestConfiguration":
@@ -141,6 +168,8 @@ namespace vApus.PublishItemsHandler {
                             Thread.Sleep(i * 10);
                         }
                     }
+
+                LastActivity = DateTime.Now;
             }
 
             private void HandleDistributedTestConfiguration(PublishItem item) {
@@ -495,6 +524,14 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
 
             private DateTime GetUtcDateTime(long publishItemTimestampInMillisecondsSinceEpochUtc) {
                 return PublishItem.EpochUtc.AddMilliseconds(publishItemTimestampInMillisecondsSinceEpochUtc);
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public void Dispose() {
+                _workQueue.Dispose();
+                _databaseActions.Dispose();
             }
         }
     }
