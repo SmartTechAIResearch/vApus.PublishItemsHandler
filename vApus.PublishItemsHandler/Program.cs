@@ -50,7 +50,7 @@ namespace vApus.PublishItemsHandler {
                     PublishItemHandler.Init(credentials[0] as string, (int)credentials[1], credentials[2] as string, credentials[3] as string);
                     Console.WriteLine("Connected to MySQL " + credentials[2] + "@" + credentials[0] + ":" + credentials[1]);
                     QueuedListener.Start(port);
-                    Console.WriteLine("Listening for incomming messages...");
+                    Console.WriteLine("Listening for incoming messages...");
 
                     Console.WriteLine();
                 }
