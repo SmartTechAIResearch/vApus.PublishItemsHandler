@@ -5,7 +5,8 @@
  * Author(s):
  *    Dieter Vandroemme
  */
- using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
+using RandomUtils.Log;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -37,8 +38,8 @@ namespace vApus.PublishItemsHandler {
                         var client = _listener.AcceptTcpClient();
                         HandleRead(new StreamReader(client.GetStream(), Encoding.UTF8));
                     }
-                    catch {
-
+                    catch (Exception ex) {
+                        Loggers.Log(Level.Error, "Failed accepting client.", ex);
                     }
             });
         }
