@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright 2009 (c) Sizing Servers Lab
+ * Copyright 2016 (c) Sizing Servers Lab
  * University College of West-Flanders, Department GKG
  * 
  * Author(s):
@@ -23,8 +23,6 @@ namespace vApus.PublishItemsHandler {
         [DllImport("user32.dll", EntryPoint = "FindWindow", SetLastError = true)]
         static extern IntPtr FindWindowByCaption(IntPtr zeroOnly, string lpWindowName);
 
-        [DllImport("USER32.DLL")]
-        public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
         const UInt32 SWP_NOSIZE = 0x0001;
@@ -69,14 +67,6 @@ namespace vApus.PublishItemsHandler {
                     Console.WriteLine("Do you want to remove your stored credentials? (y or n)");
                     if (Console.ReadLine().Trim().ToLowerInvariant() == "y")
                         RemoveCredentials();
-                }
-            }
-            else {
-                try {
-                    SetForegroundWindow(FindWindowByCaption(IntPtr.Zero, title));
-                }
-                catch {
-                    //Don't care.
                 }
             }
         }

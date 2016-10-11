@@ -403,7 +403,7 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
                 }
             }
 
-            public void SetConcurrencyStarted(int concurrency, DateTime startedAt) {
+            private void SetConcurrencyStarted(int concurrency, DateTime startedAt) {
                 if (_databaseActions != null && _stressTestResultId != -1) {
                     _databaseActions.ExecuteSQL(
                         string.Format(
@@ -415,7 +415,7 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
                 }
             }
 
-            public void SetRunStarted(int run, DateTime startedAt) {
+            private void SetRunStarted(int run, DateTime startedAt) {
                 if (_databaseActions != null && _concurrencyResultId != -1) {
                     _totalRequestCount = 0;
                     _databaseActions.ExecuteSQL(
@@ -427,7 +427,7 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
                 }
             }
 
-            public void SetRunStopped(DateTime stoppedAt) {
+            private void SetRunStopped(DateTime stoppedAt) {
                 if (_databaseActions != null && _runResultId != -1) {
                     _databaseActions.ExecuteSQL(string.Format("UPDATE runresults SET TotalRequestCount='{1}', StoppedAt='{2}' WHERE Id='{0}'", _runResultId, _totalRequestCount, Parse(stoppedAt)));
                     _totalRequestCount = 0;
@@ -438,7 +438,7 @@ VALUES('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{1
             ///     Stopped at datetime now.
             /// </summary>
             /// <param name="concurrencyResult"></param>
-            public void SetConcurrencyStopped(DateTime stoppedAt) {
+            private void SetConcurrencyStopped(DateTime stoppedAt) {
                 if (_databaseActions != null && _concurrencyResultId != -1)
                     _databaseActions.ExecuteSQL(string.Format("UPDATE concurrencyresults SET StoppedAt='{1}' WHERE Id='{0}'", _concurrencyResultId, Parse(stoppedAt)));
             }
