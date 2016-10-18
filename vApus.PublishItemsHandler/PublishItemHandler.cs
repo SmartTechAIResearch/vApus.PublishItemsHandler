@@ -311,15 +311,18 @@ namespace vApus.PublishItemsHandler {
                     var pi = item as Publish.MonitorMetrics;
                     ulong monitorId = _monitorsWithIds[pi.Monitor];
                     if (_monitorsMissingHeaders.Contains(pi.Monitor)) {
-                        SetMonitor(monitorId, pi.Headers);
                         _monitorsMissingHeaders.Remove(pi.Monitor);
+                        string[] headers = new string[pi.Headers.Length + 1];
+                        headers[0] = string.Empty;
+                        Array.Copy(pi.Headers, 0, headers, 1, pi.Headers.Length);
+                        SetMonitor(monitorId, headers);
                     }
 
                     //Store monitor values with a ',' for decimal seperator.
                     CultureInfo prevCulture = Thread.CurrentThread.CurrentCulture;
                     Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("nl-BE");
                     var value = new List<string>();
-                    for (int i = 1; i < pi.Values.Length; i++) {
+                    for (int i = 0; i != pi.Values.Length; i++) {
                         object o = pi.Values[i];
                         value.Add((o is double) ? StringUtil.DoubleToLongString((double)o) : o.ToString());
                     }
@@ -327,7 +330,7 @@ namespace vApus.PublishItemsHandler {
                     var sb = new StringBuilder("('");
                     sb.Append(_monitorsWithIds[pi.Monitor]);
                     sb.Append("', '");
-                    sb.Append(Parse(GetUtcDateTime((long)pi.Values[0]).ToLocalTime()));
+                    sb.Append(Parse(GetUtcDateTime(pi.AtInMillisecondsSinceEpochUtc).ToLocalTime()));
                     sb.Append("', '");
                     sb.Append(MySQLEscapeString(MySQLEscapeString(value.Combine("; "))));
                     sb.Append("')");
