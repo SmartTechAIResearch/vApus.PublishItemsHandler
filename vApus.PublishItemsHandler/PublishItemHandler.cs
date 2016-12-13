@@ -79,10 +79,10 @@ namespace vApus.PublishItemsHandler {
             var newHandleObjects = new ConcurrentDictionary<string, HandleObject>();
             foreach (string id in _handleObjects.Keys) {
                 var handleObject = _handleObjects[id];
-                if (now - handleObject.LastActivity > TimeSpan.FromHours(1))                     
+                if (now - handleObject.LastActivity > TimeSpan.FromHours(1))
                     handleObject.Dispose(); //_connectionStrings will not be cleaned, because of other handle objects can depend on it.             
-                else 
-                    newHandleObjects.TryAdd(id, handleObject);                
+                else
+                    newHandleObjects.TryAdd(id, handleObject);
             }
 
             _handleObjects = newHandleObjects;
@@ -324,6 +324,7 @@ namespace vApus.PublishItemsHandler {
                     var value = new List<string>();
                     for (int i = 0; i != pi.Values.Length; i++) {
                         object o = pi.Values[i];
+                        if (o == null) o = 0;
                         value.Add((o is double) ? StringUtil.DoubleToLongString((double)o) : o.ToString());
                     }
 
