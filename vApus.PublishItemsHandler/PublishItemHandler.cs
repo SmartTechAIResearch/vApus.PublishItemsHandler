@@ -353,13 +353,13 @@ namespace vApus.PublishItemsHandler {
                 _databaseActions.ExecuteSQL("DELETE FROM tags");
 
                 if (description.Length != 0)
-                    _databaseActions.ExecuteSQL("INSERT INTO description(Description) VALUES('" + description + "')");
+                    _databaseActions.ExecuteSQL("INSERT INTO description(Description) VALUES('" + MySQLEscapeString(description) + "')");
 
                 if (tags.Length != 0) {
                     var rowsToInsert = new List<string>(); //Insert multiple values at once.
                     foreach (string tag in tags) {
                         var sb = new StringBuilder("('");
-                        sb.Append(tag);
+                        sb.Append(MySQLEscapeString(tag));
                         sb.Append("')");
                         rowsToInsert.Add(sb.ToString());
                     }

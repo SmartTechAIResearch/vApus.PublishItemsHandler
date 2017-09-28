@@ -22,10 +22,10 @@ namespace vApus.PublishItemsHandler {
         private Timer _tmr;
 
         /// <summary>
-        /// Dequeues every 5 seconds. FIFO.
+        /// Dequeues every half a second. FIFO.
         /// </summary>
         /// <param name="dequeueTimeInMs"></param>
-        public SimpleMessageQueue(int dequeueTimeInMs = 5000) {
+        public SimpleMessageQueue(int dequeueTimeInMs = 500) {
             _tmr = new Timer(dequeueTimeInMs);
             _tmr.Elapsed += _tmr_Elapsed;
             _tmr.Start();
