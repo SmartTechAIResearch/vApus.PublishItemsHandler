@@ -1,6 +1,6 @@
-﻿//Somewhere in 2006, Dieter Vandroemme, mailto:dieter.vandroemme@gmail.com.
+﻿//Somewhere in 2006, Dieter Vandroemme.
 
-/* 19/02/2010 - Yves Wouters, mailto:wouters.yves@gmail.com
+/* 19/02/2010 - Yves Wouters
  * 
  *      Added a function to return scalars.
  *      Made this class sealed.
